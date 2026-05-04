@@ -1,0 +1,65 @@
+:root{
+  --bg:#f5f7fb;
+  --card:#fff;
+  --muted:#666;
+  --accent:#2b6cb0;
+  --success:#16a34a;
+  --danger:#e53e3e;
+  --pad:12px;
+  --max-width:900px;
+}
+
+/* reset */
+*{box-sizing:border-box}
+html,body,#root{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+
+/* app layout */
+.app{display:flex;flex-direction:column;min-height:100vh;background:#fff;color:#111}
+.app-header{
+  padding:var(--pad);
+  background:var(--bg);
+  border-bottom:1px solid rgba(0,0,0,0.04);
+}
+
+/* responsive typography */
+h1{font-size:clamp(18px, 2.4vw, 24px); margin:0 0 4px 0}
+p{margin:0;color:var(--muted);font-size:clamp(12px,1.4vw,14px)}
+
+/* toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap}
+.toolbar-left, .toolbar-right{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.toolbar-right button{white-space:nowrap}
+
+/* main area */
+.canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:20px;min-height:280px}
+.main-card{width:100%;max-width:var(--max-width);margin:0 auto;padding:18px;background:var(--card);border-radius:10px;box-shadow:0 6px 20px rgba(18,38,63,0.06)}
+
+/* question area */
+.question{display:flex;flex-direction:column;align-items:center;gap:12px}
+.question .expr{font-size:clamp(22px,4vw,36px);font-weight:600}
+.answer-input{font-size:clamp(18px,2.6vw,28px);padding:10px 14px;width:100%;max-width:340px;text-align:center;border:1px solid #e6eef9;border-radius:8px}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+.button{padding:8px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer;font-size:14px}
+
+/* chart */
+.timing-chart{width:100%;max-width:640px;height:auto;background:#fbfdff;border:1px solid #e6eef9;border-radius:8px;padding:8px;display:block;margin:10px auto}
+
+/* details list */
+.details{margin-top:12px;text-align:left}
+.details h3{margin:8px 0}
+.details ul{padding-left:18px;margin:8px 0}
+
+/* tooltip fallback for small screens */
+@media (max-width:480px){
+  .toolbar{align-items:flex-start}
+  .question .expr{font-size:22px}
+  .answer-input{max-width:260px}
+  .timing-chart{max-width:100%}
+}
+
+/* larger screens tweaks */
+@media (min-width:900px){
+  .app-header{padding:18px 28px}
+  .canvas-wrap{padding:32px}
+  .main-card{padding:28px}
+}
