@@ -4,6 +4,9 @@ import './App.css';
 export default function App() {
   const NUM_QUESTIONS = 10; // changed from 5 to 10
 
+  // default best time (seconds) = 10 minutes
+  const DEFAULT_BEST = 600;
+
   const [questions, setQuestions] = useState([]);
   const [index, setIndex] = useState(0);
   const [input, setInput] = useState('');
@@ -11,7 +14,7 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [timings, setTimings] = useState([]); // per-question times in seconds
   const [answers, setAnswers] = useState([]); // store entered answers + correctness
-  const [bestTime, setBestTime] = useState(null); // best total time (seconds)
+  const [bestTime, setBestTime] = useState(DEFAULT_BEST); // best total time (seconds), default 10min
   const [started, setStarted] = useState(false); // require user to start
   const inputRef = useRef(null);
   const startRef = useRef(0); // timestamp when current question started
@@ -37,10 +40,23 @@ export default function App() {
 
   const loadBest = () => {
     const raw = localStorage.getItem('calc_best_time');
-    if (raw) {
+    if (raw !== null) {
       const v = Number(raw);
       if (!Number.isNaN(v)) setBestTime(v);
+    } else {
+      // leave default (10 minutes) when no stored best
+      setBestTime(DEFAULT_BEST);
     }
+  };
+
+  const formatTime = (sec) => {
+    if (sec == null || Number.isNaN(sec)) return '—';
+    const s = Number(sec);
+    const minutes = Math.floor(s / 60);
+    const seconds = s - minutes * 60;
+    // keep one decimal if fraction exists
+    const secondsStr = Number.isInteger(seconds) ? String(seconds).padStart(2, '0') : (Math.round(seconds * 10) / 10).toFixed(1).padStart(4, '0');
+    return `${minutes}:${secondsStr}`;
   };
 
   const startSession = () => {
@@ -104,10 +120,12 @@ export default function App() {
           // check perfect score using recorded answers (answers state updated above may be async)
           const finalScore = score + (correct ? 1 : 0);
           if (finalScore === questions.length) {
-            const prev = Number(localStorage.getItem('calc_best_time') || Infinity);
+            const prevRaw = localStorage.getItem('calc_best_time');
+            const prev = prevRaw !== null ? Number(prevRaw) : DEFAULT_BEST;
             if (total < prev) {
-              localStorage.setItem('calc_best_time', String(Math.round(total * 10) / 10));
-              setBestTime(Math.round(total * 10) / 10);
+              const rounded = Math.round(total * 10) / 10;
+              localStorage.setItem('calc_best_time', String(rounded));
+              setBestTime(rounded);
             }
           }
           return t;
