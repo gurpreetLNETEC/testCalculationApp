@@ -6,6 +6,7 @@ export default function App() {
 
   // default best time (seconds) = 10 minutes
   const DEFAULT_BEST = 600;
+  const [bestTime, setBestTime] = useState(DEFAULT_BEST); // best total time (seconds), default 10min
 
   const [questions, setQuestions] = useState([]);
   const [index, setIndex] = useState(0);
@@ -14,7 +15,6 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [timings, setTimings] = useState([]); // per-question times in seconds
   const [answers, setAnswers] = useState([]); // store entered answers + correctness
-  const [bestTime, setBestTime] = useState(DEFAULT_BEST); // best total time (seconds), default 10min
   const [started, setStarted] = useState(false); // require user to start
   const inputRef = useRef(null);
   const startRef = useRef(0); // timestamp when current question started
@@ -49,14 +49,15 @@ export default function App() {
     }
   };
 
+  // helper: format seconds as m:ss or m:ss.s
   const formatTime = (sec) => {
     if (sec == null || Number.isNaN(sec)) return '—';
     const s = Number(sec);
     const minutes = Math.floor(s / 60);
-    const seconds = s - minutes * 60;
-    // keep one decimal if fraction exists
-    const secondsStr = Number.isInteger(seconds) ? String(seconds).padStart(2, '0') : (Math.round(seconds * 10) / 10).toFixed(1).padStart(4, '0');
-    return `${minutes}:${secondsStr}`;
+    const seconds = +(s - minutes * 60).toFixed(1); // one decimal precision
+    // show one decimal only when needed
+    const secsStr = Number.isInteger(seconds) ? String(seconds).padStart(2, '0') : seconds.toFixed(1).padStart(4, '0');
+    return `${minutes}:${secsStr}`;
   };
 
   const startSession = () => {
@@ -85,54 +86,50 @@ export default function App() {
     inputRef.current?.focus();
   }, [index]);
 
+  // replace submitCurrent with stable version that updates timings and checks best immediately
   const submitCurrent = (value) => {
     if (!questions[index]) return;
     const now = Date.now();
     const elapsedMs = Math.max(0, now - (startRef.current || now));
     const elapsedSec = Math.round((elapsedMs / 1000) * 10) / 10; // one decimal
 
-    // store entered answer and correctness immediately
     const numeric = Number(value || 0);
     const correct = numeric === questions[index].ans;
-    setAnswers((a) => {
-      const nextA = [...a, { entered: String(value || ''), correct }];
-      return nextA;
-    });
 
-    setTimings((t) => {
-      const nextT = [...t, elapsedSec];
-      return nextT;
-    });
+    // record answer
+    setAnswers((a) => [...a, { entered: String(value || ''), correct }]);
 
+    // update score synchronously relative to closure
     if (correct) setScore((s) => s + 1);
 
     const next = index + 1;
+
+    // append timing and, if final question, compute total & update best
+    setTimings((t) => {
+      const nextT = [...t, elapsedSec];
+      if (next >= questions.length) {
+        const total = nextT.reduce((A, B) => A + B, 0);
+        // finalScore using current score in closure + this question
+        const finalScore = score + (correct ? 1 : 0);
+        if (finalScore === questions.length) {
+          const prevRaw = localStorage.getItem('calc_best_time');
+          const prev = prevRaw !== null ? Number(prevRaw) : DEFAULT_BEST;
+          if (total < prev) {
+            const rounded = Math.round(total * 10) / 10;
+            localStorage.setItem('calc_best_time', String(rounded));
+            setBestTime(rounded);
+          }
+        }
+      }
+      return nextT;
+    });
+
+    // advance or finish
     if (next >= questions.length) {
-      // session complete
       setCompleted(true);
       setIndex(next);
       setInput('');
-
-      // compute total time and update best if all answers correct
-      setTimeout(() => {
-        setTimings((t) => {
-          const total = t.reduce((a, b) => a + b, 0);
-          // check perfect score using recorded answers (answers state updated above may be async)
-          const finalScore = score + (correct ? 1 : 0);
-          if (finalScore === questions.length) {
-            const prevRaw = localStorage.getItem('calc_best_time');
-            const prev = prevRaw !== null ? Number(prevRaw) : DEFAULT_BEST;
-            if (total < prev) {
-              const rounded = Math.round(total * 10) / 10;
-              localStorage.setItem('calc_best_time', String(rounded));
-              setBestTime(rounded);
-            }
-          }
-          return t;
-        });
-      }, 50);
     } else {
-      // move next and reset timer
       setIndex(next);
       setInput('');
       startRef.current = Date.now();
@@ -276,8 +273,8 @@ export default function App() {
         <div className="toolbar">
           <div className="toolbar-left">
             <div>Question: {started ? Math.min(index + 1, NUM_QUESTIONS) : 0} / {NUM_QUESTIONS}</div>
-            <div style={{ marginLeft: 12, color: '#444' }}>
-              Best time: {bestTime != null ? `${bestTime}s` : '—'}
+            <div className="best-badge" style={{ marginLeft: 12 }}>
+              Best time: {bestTime != null ? formatTime(bestTime) : '—'}
             </div>
           </div>
 
